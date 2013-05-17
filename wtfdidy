@@ -1,0 +1,74 @@
+#!/usr/bin/ruby
+require 'yaml'
+
+class Wtf
+
+    FILE = File.expand_path('.wtfdidy')
+
+    def initialize()
+        bootstrap
+        load_items
+        @now = Time.now
+        @items ||= Hash.new
+    end
+
+    def add(item)
+        date = @now.strftime("%Y-%m-%d")
+        
+        @items[date] ||= Array.new
+        @items[date].push(item)
+        save
+        item
+    end
+
+    def list
+        if (@now.wday.to_s == '1')
+            yesterday = @now - (3*24*60*60)
+        else
+            yesterday = @now - (1*24*60*60)
+        end
+
+        date = yesterday.strftime("%Y-%m-%d")
+
+        printf "You did this yesterday:\n"
+
+        if @items[date]
+            @items[date].each do |item|
+                printf "  %s\n", item
+            end
+        else
+            printf "  Nothing!\n"
+        end
+    end
+
+    def file
+        @file ||= File.exist?(FILE) ? FILE : "#{ENV['HOME']}/.wtfdidy"
+    end
+
+    def load_items
+        @items = YAML.load_file(file);
+    end
+    
+    def save
+        File.open(file, "w") {|f| f.write(@items.to_yaml) }
+    end
+    
+    def bootstrap
+        return if File.exist?(file)
+        save
+    end
+end
+
+if __FILE__ == $0
+    case ARGV[0]
+    when 'help','h'
+        puts "\nUsage: wtfdidy WHAT YOU DID\n"
+        puts "  Use without arguments to list WTF you did yesterday\n\n"
+    else
+        if ARGV.length > 0
+            puts "Added: #{Wtf.new.add(ARGV[0..-1].join(' '))}"
+        else
+            Wtf.new().list
+        end
+    end
+end
